@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proceon Prognostics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root { color-scheme: light dark; }
+  html { -webkit-text-size-adjust: 100%; }
+  img { max-width: 100%; }
+  [hidden] { display: none !important; }
+
+  :root {
+    --paper:#FAFBFC; --surface:#FFFFFF; --surface-2:#F1F3F6;
+    --ink:#171B22; --muted:#57616F; --faint:#8A93A2;
+    --line:#E4E7EC; --line-strong:#D3D8DF;
+    --accent:#0F7C8C; --accent-ink:#0A5A67; --accent-soft:#E2F1F3;
+    --ok:#2E8B57; --ok-soft:#E4F2EA;
+    --warn:#B0761A; --warn-soft:#F7ECD8;
+    --crit:#BE443A; --crit-soft:#F7E4E1;
+    --shadow: 0 1px 2px rgba(18,28,38,.05), 0 10px 30px -16px rgba(18,28,38,.20);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0E1216; --surface:#151A20; --surface-2:#1B222B;
+      --ink:#E7EBF0; --muted:#9AA4B2; --faint:#69737F;
+      --line:#242C35; --line-strong:#333D49;
+      --accent:#37C2D3; --accent-ink:#8AE2ED; --accent-soft:#123138;
+      --ok:#4EB57C; --ok-soft:#12291D;
+      --warn:#D6A143; --warn-soft:#2C2312;
+      --crit:#E0655B; --crit-soft:#2E1613;
+      --shadow: 0 1px 2px rgba(0,0,0,.30), 0 14px 34px -18px rgba(0,0,0,.66);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0E1216; --surface:#151A20; --surface-2:#1B222B;
+    --ink:#E7EBF0; --muted:#9AA4B2; --faint:#69737F;
+    --line:#242C35; --line-strong:#333D49;
+    --accent:#37C2D3; --accent-ink:#8AE2ED; --accent-soft:#123138;
+    --ok:#4EB57C; --ok-soft:#12291D;
+    --warn:#D6A143; --warn-soft:#2C2312;
+    --crit:#E0655B; --crit-soft:#2E1613;
+    --shadow: 0 1px 2px rgba(0,0,0,.30), 0 14px 34px -18px rgba(0,0,0,.66);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16.5px; line-height: 1.62; -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 28px; }
+  .col { max-width: 720px; }
+
+  h1,h2,h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; line-height: 1.12; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(1.6rem, 1.1rem + 1.6vw, 2.15rem); font-weight: 800; margin: 0 0 .5rem; }
+  h3 { font-size: 1.2rem; font-weight: 700; margin: 0 0 .35rem; letter-spacing: -0.005em; }
+  p { margin: 0 0 1.05rem; color: var(--ink); }
+  a { color: var(--accent-ink); text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  code {
+    font-size: .86em; background: var(--surface-2); color: var(--ink);
+    padding: .1em .4em; border-radius: 5px; border: 1px solid var(--line);
+  }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: .72rem; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--accent-ink);
+    display: inline-block; margin-bottom: .7rem;
+  }
+
+  .bar {
+    position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--paper) 86%, transparent);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  .bar-in { display: flex; align-items: center; gap: 14px; height: 56px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: "Archivo", sans-serif; font-weight: 800; letter-spacing: -0.01em; }
+  .brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); flex: none; }
+  .bar .spacer { flex: 1; }
+  .toggle {
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; letter-spacing: .04em;
+    background: var(--surface); color: var(--muted); border: 1px solid var(--line-strong);
+    border-radius: 999px; padding: .38rem .8rem; cursor: pointer; display: inline-flex; align-items: center; gap: .45rem;
+  }
+  .toggle:hover { color: var(--ink); border-color: var(--accent); }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .hero { padding: 68px 0 30px; }
+  .hero h1 { font-size: clamp(2.3rem, 1.3rem + 3.6vw, 3.7rem); font-weight: 800; margin: 0 0 1.1rem; letter-spacing: -0.025em; }
+  .hero .lede { font-size: clamp(1.12rem, 1rem + .5vw, 1.35rem); color: var(--muted); max-width: 40ch; }
+  .hero .lede b { color: var(--ink); font-weight: 600; }
+  .metarow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
+  .chip {
+    font-family: "IBM Plex Mono", monospace; font-size: .74rem; letter-spacing: .02em;
+    background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+    border-radius: 999px; padding: .34rem .7rem;
+  }
+  .chip b { color: var(--ink); font-weight: 500; }
+
+  section { padding: 40px 0; border-top: 1px solid var(--line); }
+  section.nolinetop { border-top: none; }
+
+  .lead-in { color: var(--muted); font-size: 1.08rem; max-width: 66ch; }
+
+  .grid { display: grid; gap: 16px; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .g2 { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 800px){ .g3, .g2 { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px 20px 18px; box-shadow: var(--shadow);
+  }
+  .card h3 { font-size: 1.06rem; }
+  .card p { font-size: .95rem; color: var(--muted); margin: 0; }
+  .card .tag {
+    font-family: "IBM Plex Mono", monospace; font-size: .68rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent-ink); display: block; margin-bottom: .5rem;
+  }
+
+  figure { margin: 26px 0 8px; }
+  .figwrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px 20px 10px; box-shadow: var(--shadow); overflow-x: auto; }
+  figure svg { display: block; width: 100%; height: auto; color: var(--muted); min-width: 560px; }
+  figcaption { font-size: .86rem; color: var(--faint); margin-top: 12px; max-width: 66ch; }
+  figcaption b { color: var(--muted); font-weight: 600; }
+
+  .ladder { margin-top: 26px; display: flex; flex-direction: column; gap: 0; }
+  .phase { position: relative; display: grid; grid-template-columns: 96px 1fr; gap: 20px; padding: 22px 0; border-top: 1px dashed var(--line-strong); }
+  .phase:first-child { border-top: none; }
+  .rail { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .pcode {
+    font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: .82rem; letter-spacing: .04em;
+    width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center;
+    background: var(--accent-soft); color: var(--accent-ink); border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  }
+  .phase .size { font-family: "IBM Plex Mono", monospace; font-size: .64rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); text-align: center; }
+  .phase h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .phase .goal { color: var(--muted); font-size: .98rem; margin: .1rem 0 .8rem; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: .9rem; }
+  .kv dt { font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--faint); padding-top: 3px; }
+  .kv dd { margin: 0; color: var(--ink); }
+  .kv dd.done { color: var(--muted); }
+  .kv .mono { color: var(--accent-ink); }
+
+  .tablewrap { overflow-x: auto; margin-top: 22px; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: .92rem; }
+  th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font-family: "IBM Plex Mono", monospace; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); background: var(--surface-2); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+  td:first-child { font-weight: 600; }
+  td .mono { color: var(--accent-ink); font-size: .84rem; }
+
+  .verdict { display: inline-flex; align-items: center; gap: .4rem; font-family: "IBM Plex Mono", monospace; font-size: .72rem; letter-spacing: .03em; padding: .2rem .55rem; border-radius: 6px; }
+  .v-ok { background: var(--ok-soft); color: var(--ok); }
+  .v-warn { background: var(--warn-soft); color: var(--warn); }
+  .v-crit { background: var(--crit-soft); color: var(--crit); }
+
+  ul.clean { list-style: none; padding: 0; margin: 0; }
+  ul.clean li { padding-left: 22px; position: relative; margin-bottom: .55rem; color: var(--muted); }
+  ul.clean li::before { content: ""; position: absolute; left: 4px; top: .62em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+  ul.clean li b { color: var(--ink); font-weight: 600; }
+
+  .callout {
+    background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+    border-radius: var(--radius); padding: 18px 20px; margin-top: 22px;
+  }
+  .callout .eyebrow { color: var(--accent-ink); }
+  .callout p { margin: 0; color: var(--ink); }
+
+  footer { padding: 40px 0 70px; border-top: 1px solid var(--line); color: var(--faint); font-size: .86rem; }
+  footer .mono { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <div class="wrap bar-in">
+    <span class="brand"><span class="dot"></span> Proceon&nbsp;Prognostics</span>
+    <span class="spacer"></span>
+    <button class="toggle" id="themeBtn" aria-label="Toggle color theme">◐ theme</button>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap col">
+    <span class="eyebrow">Predictive maintenance · project brief</span>
+    <h1>Forecast a motor failing before it stops the line.</h1>
+    <p class="lede">A training-and-inference system that learns a machine's failure signature from the signals it already emits — <b>temperature, vibration, current</b> — and lets every manual inspection sharpen the next prediction. Built to start as a weekend notebook and grow, one honest step at a time, into an agent that reads the predictions and recommends the fix.</p>
+    <div class="metarow">
+      <span class="chip"><b>Status:</b> draft for discussion</span>
+      <span class="chip"><b>Builds on:</b> VisionFramework core</span>
+      <span class="chip"><b>Runtime:</b> LibTorch · ONNX</span>
+      <span class="chip"><b>Scope:</b> P0 → P5</span>
+    </div>
+  </div>
+</header>
+
+<section class="nolinetop">
+  <div class="wrap col">
+    <span class="eyebrow">01 · What this is</span>
+    <h2>One kernel, six sizes</h2>
+    <p class="lead-in">The whole system is one small idea wrapped in progressively more machinery: <em>slide a window over the sensor stream, score it, and decide.</em> Everything else — the alerting, the feedback loop, the fleet view, the agent — wraps that kernel without replacing it. That is what lets the project scale down as easily as up: strip the wrappers and the P0 core still runs on a laptop.</p>
+    <p>It deliberately reuses the shape of the existing <b>VisionFramework</b>: the same config-driven <code>task:</code> dispatch, the same phase-1-warmup → phase-2-finetune training loop, the same run/checkpoint management, and the same LibTorch → ONNX export path. A prognostics task is a new data loader and a temporal model bolted onto proven scaffolding — not a greenfield rebuild. Whether it lives as a third <code>task:</code> or a sibling repo sharing that core is a packaging choice, addressed under scaling.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap col">
+    <span class="eyebrow">02 · Framing the problem</span>
+    <h2>Decide what "failure" means before you model it</h2>
+    <p class="lead-in">The single decision that governs the whole design is what the model predicts. Predictive maintenance data is almost always lopsided — thousands of healthy hours per real breakdown — so the right framing depends on how much failure history you actually hold. Pick deliberately; each one wants different labels, losses, and datasets.</p>
+  </div>
+  <div class="wrap">
+    <div class="grid g3" style="margin-top:22px">
+      <div class="card">
+        <span class="tag">Framing A</span>
+        <h3>Horizon classification</h3>
+        <p>“Will this motor fail within the next N hours?” Maps almost directly onto the existing classification head. Simplest to ship — but hungry for labeled failure events, which you rarely have on day one.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Framing B</span>
+        <h3>RUL regression</h3>
+        <p>Predict remaining useful life — hours-to-failure. The most actionable output for scheduling maintenance, but it needs run-to-failure histories to build the target.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Framing C</span>
+        <h3>Anomaly detection</h3>
+        <p>Train only on healthy operation, flag deviation. Sidesteps the “too few failures” problem entirely — the realistic cold-start default until enough confirmed failures accumulate.</p>
+      </div>
+    </div>
+    <div class="col">
+      <div class="callout">
+        <span class="eyebrow">The cold-start reality</span>
+        <p>You will not have labeled failures at the start. Begin with <b>Framing C (anomaly)</b> on healthy line data, and let the calibration loop below convert every inspected alert into the labeled examples that eventually unlock Framing A or B. The system is designed so this transition needs no rewrite — only more data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">03 · Architecture</span>
+      <h2>Training and inference share one pipeline</h2>
+      <p class="lead-in">Two paths, one set of parts. The <b>inference path</b> (top) turns a live sensor stream into decisions. The <b>training path</b> (bottom) turns labeled windows into the ONNX model the inference path runs. They meet at the model, and they close through the feedback loop in §04.</p>
+    </div>
+
+    <figure>
+      <div class="figwrap">
+        <svg viewBox="0 0 960 400" role="img" aria-label="Data flow: sensors are windowed and normalized, scored by an ONNX model, passed through a calibrated threshold, and turned into alerts and a prediction store. Below, labeled windows train the LibTorch core which exports the ONNX model that gets deployed. Inspector verdicts flow from alerts back to the labeled dataset.">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+            <marker id="arA" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+
+          <text x="16" y="40" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.5" fill="currentColor" opacity=".7">INFERENCE</text>
+          <text x="16" y="300" font-family="IBM Plex Mono, monospace" font-size="11" letter-spacing="1.5" fill="currentColor" opacity=".7">TRAINING</text>
+
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5">
+            <g>
+              <rect x="16" y="58" width="150" height="76" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="91" y="88" text-anchor="middle" fill="currentColor" font-weight="600">Sensors</text>
+              <text x="91" y="107" text-anchor="middle" fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity=".75">temp · vibration</text>
+              <text x="91" y="121" text-anchor="middle" fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity=".75">current</text>
+            </g>
+            <g>
+              <rect x="216" y="58" width="150" height="76" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="291" y="90" text-anchor="middle" fill="currentColor" font-weight="600">Window +</text>
+              <text x="291" y="107" text-anchor="middle" fill="currentColor" font-weight="600">normalize</text>
+            </g>
+            <g style="color:var(--accent)">
+              <rect x="416" y="58" width="150" height="76" rx="9" fill="var(--accent-soft)" stroke="currentColor" stroke-width="1.6"/>
+              <text x="491" y="90" text-anchor="middle" fill="var(--accent-ink)" font-weight="700">Model</text>
+              <text x="491" y="108" text-anchor="middle" fill="var(--accent-ink)" font-family="IBM Plex Mono, monospace" font-size="10.5">ONNX Runtime</text>
+            </g>
+            <g>
+              <rect x="616" y="58" width="150" height="76" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="691" y="90" text-anchor="middle" fill="currentColor" font-weight="600">Calibrated</text>
+              <text x="691" y="107" text-anchor="middle" fill="currentColor" font-weight="600">threshold</text>
+            </g>
+            <g>
+              <rect x="816" y="58" width="128" height="76" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="880" y="90" text-anchor="middle" fill="currentColor" font-weight="600">Alerts +</text>
+              <text x="880" y="107" text-anchor="middle" fill="currentColor" font-weight="600">store</text>
+            </g>
+          </g>
+
+          <g stroke="currentColor" stroke-width="1.4" fill="none">
+            <line x1="166" y1="96" x2="212" y2="96" marker-end="url(#ar)"/>
+            <line x1="366" y1="96" x2="412" y2="96" marker-end="url(#ar)"/>
+            <line x1="566" y1="96" x2="612" y2="96" marker-end="url(#ar)"/>
+            <line x1="766" y1="96" x2="812" y2="96" marker-end="url(#ar)"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".7" text-anchor="middle">
+            <text x="189" y="88">stream</text>
+            <text x="389" y="88">tensor</text>
+            <text x="589" y="88">score</text>
+            <text x="789" y="88">flag</text>
+          </g>
+
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5">
+            <g>
+              <rect x="16" y="316" width="150" height="66" rx="9" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 3"/>
+              <text x="91" y="346" text-anchor="middle" fill="currentColor" font-weight="600">Labeled</text>
+              <text x="91" y="363" text-anchor="middle" fill="currentColor" font-weight="600">windows</text>
+            </g>
+            <g>
+              <rect x="266" y="316" width="160" height="66" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="346" y="343" text-anchor="middle" fill="currentColor" font-weight="600">Trainer</text>
+              <text x="346" y="361" text-anchor="middle" fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="10.5" opacity=".75">LibTorch core</text>
+            </g>
+            <g>
+              <rect x="526" y="316" width="150" height="66" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="601" y="346" text-anchor="middle" fill="currentColor" font-weight="600">ONNX export</text>
+            </g>
+          </g>
+          <g stroke="currentColor" stroke-width="1.4" fill="none">
+            <line x1="166" y1="349" x2="262" y2="349" marker-end="url(#ar)"/>
+            <line x1="426" y1="349" x2="522" y2="349" marker-end="url(#ar)"/>
+          </g>
+          <g style="color:var(--accent)">
+            <path d="M601,316 C601,220 491,210 491,138" stroke="currentColor" stroke-width="1.6" fill="none" marker-end="url(#arA)"/>
+            <text x="612" y="230" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent-ink)">deploy</text>
+          </g>
+          <g stroke="currentColor" stroke-width="1.4" fill="none" stroke-dasharray="5 4">
+            <path d="M880,134 C880,250 300,250 130,314" marker-end="url(#ar)"/>
+          </g>
+          <text x="470" y="243" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity=".75" text-anchor="middle">inspector verdicts  →  §04</text>
+        </svg>
+      </div>
+      <figcaption><b>The kernel is the accent box.</b> Windowing, thresholding, alerting and the whole training lane are wrappers around the ONNX model. The dashed return path — verdicts flowing back into the labeled set — is the mechanism the next section expands.</figcaption>
+    </figure>
+
+    <div class="col">
+      <p style="margin-top:18px">Component by component, the parts that are new versus reused:</p>
+      <ul class="clean">
+        <li><b>Windowing loader</b> <span class="mono" style="font-size:.85em">(new)</span> — slides fixed windows over each asset's multivariate stream, normalizing per channel on <em>training</em> statistics only. At high sample rates an FFT/spectrogram front-end usually beats raw time series, since fault signatures live in the frequency domain.</li>
+        <li><b>Temporal model</b> <span class="mono" style="font-size:.85em">(new)</span> — a 1-D CNN / TCN to start (fast, exports cleanly), an LSTM/GRU if long memory proves necessary. Replaces the image backbone; everything downstream is unchanged.</li>
+        <li><b>Training loop, run management, ONNX export</b> <span class="mono" style="font-size:.85em">(reused)</span> — lifted from VisionFramework. A temporal LibTorch module exports to ONNX exactly like the CNN, so production inference stays byte-identical to training.</li>
+        <li><b>Calibrated threshold</b> <span class="mono" style="font-size:.85em">(new, small)</span> — the score-to-decision cutoff, tuned by the feedback loop rather than hard-coded.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">04 · The calibration loop</span>
+      <h2>Every inspection makes the next call better</h2>
+      <p class="lead-in">A forecast is only useful if the floor trusts it, and trust dies with false alarms. So the design treats a manual inspection saying “nothing wrong here” as a first-class input, not a complaint. Each alert becomes a work order; each verdict feeds two loops running at different speeds.</p>
+    </div>
+
+    <figure>
+      <div class="figwrap">
+        <svg viewBox="0 0 900 430" role="img" aria-label="An alert becomes a work order and a manual inspection, producing a verdict of confirmed, false positive, or missed. The verdict feeds a fast loop that recalibrates the decision threshold on the same model, and a slow loop that appends the case to the labeled dataset with hard-negative mining, retrains, and redeploys.">
+          <defs>
+            <marker id="fr" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+            </marker>
+          </defs>
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5">
+            <g style="color:var(--accent)">
+              <rect x="20" y="26" width="176" height="64" rx="9" fill="var(--accent-soft)" stroke="currentColor" stroke-width="1.5"/>
+              <text x="108" y="52" text-anchor="middle" fill="var(--accent-ink)" font-weight="700">Prediction</text>
+              <text x="108" y="70" text-anchor="middle" fill="var(--accent-ink)" font-family="IBM Plex Mono, monospace" font-size="10">failure likely</text>
+            </g>
+            <g>
+              <rect x="252" y="26" width="176" height="64" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="340" y="52" text-anchor="middle" fill="currentColor" font-weight="600">Work order +</text>
+              <text x="340" y="70" text-anchor="middle" fill="currentColor" font-weight="600">manual inspection</text>
+            </g>
+            <g>
+              <rect x="484" y="26" width="196" height="64" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+              <text x="582" y="52" text-anchor="middle" fill="currentColor" font-weight="600">Inspector verdict</text>
+              <text x="582" y="70" text-anchor="middle" fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="9.5" opacity=".8">confirmed · false-pos · missed</text>
+            </g>
+          </g>
+          <g stroke="currentColor" stroke-width="1.4" fill="none">
+            <line x1="196" y1="58" x2="248" y2="58" marker-end="url(#fr)"/>
+            <line x1="428" y1="58" x2="480" y2="58" marker-end="url(#fr)"/>
+          </g>
+
+          <g stroke="currentColor" stroke-width="1.4" fill="none">
+            <path d="M582,90 L582,132 L300,132 L300,168" marker-end="url(#fr)"/>
+            <path d="M582,90 L582,258 L300,258 L300,296" marker-end="url(#fr)"/>
+          </g>
+
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5">
+            <rect x="150" y="168" width="300" height="60" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <text x="300" y="193" text-anchor="middle" fill="currentColor" font-weight="600">Recalibrate threshold</text>
+            <text x="300" y="211" text-anchor="middle" fill="currentColor" font-family="IBM Plex Mono, monospace" font-size="10" opacity=".8">isotonic / Platt · same model</text>
+          </g>
+          <text x="470" y="150" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".8">FAST · minutes</text>
+
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5">
+            <rect x="150" y="296" width="196" height="60" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <text x="248" y="320" text-anchor="middle" fill="currentColor" font-weight="600">Labeled set +</text>
+            <text x="248" y="338" text-anchor="middle" fill="currentColor" font-weight="600">hard-neg mining</text>
+            <rect x="392" y="296" width="150" height="60" rx="9" fill="none" stroke="currentColor" stroke-width="1.3"/>
+            <text x="467" y="320" text-anchor="middle" fill="currentColor" font-weight="600">Retrain +</text>
+            <text x="467" y="338" text-anchor="middle" fill="currentColor" font-weight="600">redeploy</text>
+          </g>
+          <text x="470" y="284" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity=".8">SLOW · scheduled</text>
+          <line x1="346" y1="326" x2="388" y2="326" stroke="currentColor" stroke-width="1.4" fill="none" marker-end="url(#fr)"/>
+
+          <g stroke="currentColor" stroke-width="1.4" fill="none" style="color:var(--accent)">
+            <path d="M150,198 L108,198 L108,90" stroke="currentColor" marker-end="url(#fr)"/>
+            <path d="M150,326 L60,326 L60,58 L16,58" stroke="currentColor" marker-end="url(#fr)"/>
+          </g>
+          <text x="70" y="150" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent-ink)" transform="rotate(-90 70 150)">new cutoff</text>
+          <text x="44" y="200" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent-ink)" transform="rotate(-90 44 200)">new weights</text>
+        </svg>
+      </div>
+      <figcaption><b>Two loops, two clocks.</b> A false positive nudges the decision <em>cutoff</em> within minutes without touching the model; over a scheduled cycle the same verdicts become training labels — the confirmed misses upsampled as hard negatives, reusing VisionFramework's round-2 mining pattern — and a retrained model redeploys.</figcaption>
+    </figure>
+
+    <div class="col">
+      <p style="margin-top:18px">Why the split matters: retraining on every click is slow, unstable, and invites the model to chase one inspector's noise. Recalibrating a threshold is cheap, reversible, and immediately felt on the floor. So the loop separates <em>“this alert was wrong, be less trigger-happy here”</em> (fast) from <em>“here is a genuinely new example to learn from”</em> (slow).</p>
+      <p>Concretely, each prediction is written with a stable id, the window that produced it, the score, and the model version. An inspection resolves that id to one of three verdicts:</p>
+      <ul class="clean">
+        <li><span class="verdict v-ok">confirmed</span> a true positive — a labeled failure example, gold for later Framing A/B.</li>
+        <li><span class="verdict v-warn">false&nbsp;positive</span> the case the inspector overturns — feeds threshold recalibration and becomes a hard negative.</li>
+        <li><span class="verdict v-crit">missed</span> a failure the model didn't flag, logged from post-hoc reality — the most valuable and rarest label.</li>
+      </ul>
+      <p>That verdict log is the asset that compounds. It is what carries the system from anomaly detection (no labels) to horizon classification (many labels) without a rewrite, and it is the memory the agent in P5 eventually reasons over.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">05 · Scaling ladder</span>
+      <h2>Start on a laptop. End with an advisor.</h2>
+      <p class="lead-in">Six phases, each a working system you could stop at. The numbering is a real sequence — every phase adds exactly one capability and keeps everything below it runnable. The <span class="mono" style="font-size:.85em">SIZE</span> tag is the rough weight of what you're standing up.</p>
+    </div>
+
+    <div class="wrap ladder">
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P0</span><span class="size">laptop</span></div>
+        <div>
+          <h3>Offline sanity check</h3>
+          <p class="goal">Prove the kernel works on trusted public data before touching a single Proceon motor.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>A notebook: window → 1-D CNN → classify, on <b>CWRU bearing</b> for plumbing, then the <b>KAIST temp/vibration/current</b> set for your real sensor mix.</dd>
+            <dt>Stack</dt><dd><span class="mono">Python · PyTorch · one CSV</span> — no infrastructure.</dd>
+            <dt>Done when</dt><dd class="done">You can separate fault states above chance and export one ONNX file.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P1</span><span class="size">one machine</span></div>
+        <div>
+          <h3>Batch inference CLI</h3>
+          <p class="goal">Run the model over your own logged sensor data and raise a simple alert.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>Port the kernel into the VisionFramework CLI shape — <span class="mono">train / evaluate / predict / export-onnx</span> — reading a config. A fixed threshold, an alert to a log or email.</dd>
+            <dt>Stack</dt><dd><span class="mono">C++/LibTorch core · ONNX Runtime · cron</span></dd>
+            <dt>Done when</dt><dd class="done">A nightly job scores yesterday's data and flags the concerning windows.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P2</span><span class="size">continuous</span></div>
+        <div>
+          <h3>Live inference service</h3>
+          <p class="goal">Move from batch to a rolling window over a near-live feed, with somewhere to look.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>A small service holding the ONNX model in memory, windowing the incoming stream, writing scores to a store, plus a read-only dashboard of per-asset health.</dd>
+            <dt>Stack</dt><dd><span class="mono">ONNX Runtime service · SQLite/Timescale · a web view</span></dd>
+            <dt>Done when</dt><dd class="done">A machine's health is visible in near-real-time without anyone running a command.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P3</span><span class="size">closed loop</span></div>
+        <div>
+          <h3>Feedback &amp; calibration live</h3>
+          <p class="goal">Turn on §04 — inspections flow back and the system self-corrects.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>A verdict-capture UI on each alert, automatic threshold recalibration on confirmed labels, and a scheduled retrain with hard-negative mining.</dd>
+            <dt>Stack</dt><dd><span class="mono">verdict log · isotonic calibration · retrain job · model registry</span></dd>
+            <dt>Done when</dt><dd class="done">False-positive rate drops over weeks with no manual threshold tuning.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P4</span><span class="size">fleet</span></div>
+        <div>
+          <h3>Multi-asset &amp; drift</h3>
+          <p class="goal">Scale from one motor to every motor, each with its own baseline.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>Per-asset normalization and baselines, drift monitoring on inputs and scores, a versioned model registry, and fleet-level rollups.</dd>
+            <dt>Stack</dt><dd><span class="mono">Timescale/Postgres · registry · drift metrics · scheduler</span></dd>
+            <dt>Done when</dt><dd class="done">A new machine onboards from config, and silent sensor drift is caught before it fakes a fault.</dd>
+          </dl>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="rail"><span class="pcode">P5</span><span class="size">agentic</span></div>
+        <div>
+          <h3>The advisor</h3>
+          <p class="goal">An agent reads the predictions and the history, and recommends the fix.</p>
+          <dl class="kv">
+            <dt>Build</dt><dd>An LLM agent over the verdict log and past work orders (retrieval over history): given a fresh alert, it surfaces the most similar past cases, what the inspector found, what fixed it, and a confidence-weighted recommendation — never an unattended action.</dd>
+            <dt>Stack</dt><dd><span class="mono">agent + retrieval over verdict log &amp; work-order history</span></dd>
+            <dt>Done when</dt><dd class="done">On a new alert, a technician gets “last three times this pattern appeared, it was X; fix was Y” before they walk over.</dd>
+          </dl>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="col">
+      <div class="callout">
+        <span class="eyebrow">Scaling down · keeping it lean</span>
+        <p>Because each phase wraps the one below, you can descend at will: a hardware-constrained edge box runs P1's kernel with no service; a quiet line can drop P4's fleet machinery and run a single P2 service; the agent in P5 is an advisor layer that can be switched off entirely, leaving P3 fully functional. The kernel never depends on the wrappers — only the reverse.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">06 · Stack, small to large</span>
+      <h2>What each concern costs to grow</h2>
+      <p class="lead-in">The same concern, sized for where you are. Start in the left column; move right only when a phase demands it. Nothing here forces an early commitment.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Concern</th><th>Start small (P0–P1)</th><th>Grown up (P3–P5)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Model</td><td>1-D CNN / TCN, one asset</td><td>Per-asset models + registry &amp; versioning</td></tr>
+          <tr><td>Inference</td><td>ONNX CLI, batch/cron</td><td>In-memory service, rolling windows</td></tr>
+          <tr><td>Store</td><td>CSV → SQLite</td><td>TimescaleDB / Postgres time-series</td></tr>
+          <tr><td>Labels</td><td>Public datasets, healthy-only</td><td>Verdict log — confirmed / false-pos / missed</td></tr>
+          <tr><td>Calibration</td><td>Fixed threshold</td><td>Isotonic/Platt, auto-recalibrated</td></tr>
+          <tr><td>Retraining</td><td>Manual, occasional</td><td>Scheduled + hard-negative mining</td></tr>
+          <tr><td>Interface</td><td>Log file / email</td><td>Dashboard + verdict capture + agent advisor</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="col">
+      <span class="eyebrow">07 · Honest caveats</span>
+      <h2>What will actually be hard</h2>
+      <p class="lead-in">None of these are reasons not to build it — they're the things to design around from day one rather than discover at P4.</p>
+      <ul class="clean" style="margin-top:6px">
+        <li><b>Cold start.</b> You begin with no failures. This is why P0 leans on public data and the early framing is anomaly detection — the loop earns its labels over time.</li>
+        <li><b>Domain gap.</b> A model that aces CWRU or KAIST will not transfer to your motors directly. Public data validates the <em>approach and pipeline</em>; a deployable model needs data collection on your own line.</li>
+        <li><b>Alert fatigue.</b> The fastest way to kill the project is crying wolf. The calibration loop exists precisely to keep precision high enough that the floor keeps trusting it.</li>
+        <li><b>Feedback bias.</b> Inspectors only verify what the model flags, so the labeled set skews toward the model's current blind spots. Log the occasional <span class="verdict v-crit">missed</span> case and sample some healthy windows for verification to counter it.</li>
+        <li><b>Sensor alignment.</b> Different channels sample at different rates and drift over time. Resample and align before windowing; monitor input drift once at P4 so a miscalibrated probe can't masquerade as a failing bearing.</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="callout">
+        <span class="eyebrow">Recommended first move</span>
+        <p>Spend a weekend on <b>P0</b>: window the KAIST temp/vibration/current set, train a small 1-D CNN, export one ONNX file. It costs nothing, proves the signals are separable on your exact sensor mix, and gives you the concrete feel to decide how far up the ladder to climb.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap col">
+    <p class="mono" style="margin:0 0 .3rem">Proceon Prognostics · project brief · draft v0.1</p>
+    <p style="margin:0">Companion to VisionFramework (fillet side-classifier &amp; defect segmenter) and the Proceon Labeller. Extends the same config-driven <code>task:</code> core to condition monitoring.</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    var KEY = 'proceon-prognostics-theme';
+    try {
+      var saved = localStorage.getItem(KEY);
+      if (saved === 'dark' || saved === 'light') root.setAttribute('data-theme', saved);
+    } catch (e) {}
+    function current() {
+      var explicit = root.getAttribute('data-theme');
+      if (explicit) return explicit;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem(KEY, next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>
