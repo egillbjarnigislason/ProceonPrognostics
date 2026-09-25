@@ -1,6 +1,9 @@
 .DS_store
 docs
 Data
+DataKAIST
 .venv/
 __pycache__/
 checkpoints/
+outputs
+job_out/

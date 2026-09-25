@@ -41,7 +41,7 @@ def plot(history: list[dict], out_path: Path) -> None:
     phases = [r["phase"] for r in history]
     for i in range(1, len(phases)):
         if phases[i] != phases[i - 1]:
-            plt.axvline(epochs[i] - 0.5, color="gray", linestyle="--", linewidth=0.8)
+            plt.axvline(epochs[i] - 1.0, color="gray", linestyle="--", linewidth=0.8)
 
     plt.xlabel("epoch")
     plt.ylabel("MSE loss")

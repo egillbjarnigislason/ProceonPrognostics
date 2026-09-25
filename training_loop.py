@@ -6,6 +6,10 @@ phase2_finetune pattern: each phase trains for its own epoch count and LR,
 and the best checkpoint (lowest val loss) is tracked globally across phases
 rather than reset at each phase boundary.
 
+One loop, three signal types: cfg.signal_type selects which WindowDataset
+class to build (see dataset.py) -- vibration/current/temp otherwise share
+every other step (masking, optimizer, checkpointing, history logging).
+
 Per-epoch train/val loss is also logged to a CSV next to the checkpoint
 (flushed after every epoch, so it survives an interrupted run) -- plot it
 with plot_history.py.
@@ -23,8 +27,14 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from config import Config
-from dataset import VibrationWindowDataset
+from dataset import CurrentWindowDataset, TemperatureWindowDataset, VibrationWindowDataset
 from model import load_moment, trainable_params, unfreeze_top_blocks
+
+_DATASET_CLASSES = {
+    "vibration": VibrationWindowDataset,
+    "current": CurrentWindowDataset,
+    "temp": TemperatureWindowDataset,
+}
 
 
 @dataclass
@@ -33,6 +43,19 @@ class TrainResult:
     best_checkpoint: Path
     history_path: Path
     history: List[dict] = field(default_factory=list)
+
+
+def _build_dataset(cfg: Config, stems: List[str], stride: int):
+    try:
+        cls = _DATASET_CLASSES[cfg.signal_type]
+    except KeyError:
+        raise ValueError(
+            f"Unknown signal_type {cfg.signal_type!r}; expected one of "
+            f"{sorted(_DATASET_CLASSES)}"
+        )
+    if cfg.signal_type == "vibration":
+        return cls(cfg.data_dir, stems, cfg.channels, cfg.window, stride, cfg.filter_spec)
+    return cls(cfg.data_dir, stems, cfg.window, stride, cfg.filter_spec)
 
 
 def _run_epoch(model, loader, device, optimizer=None) -> float:
@@ -66,13 +89,11 @@ def train(cfg: Config) -> TrainResult:
     device = torch.device(cfg.device)
     model = load_moment(cfg.mask_ratio).to(device)
 
-    train_ds = VibrationWindowDataset(cfg.data_dir, cfg.train_stems, cfg.channels,
-                                       cfg.window, cfg.train_stride)
-    val_ds = VibrationWindowDataset(cfg.data_dir, cfg.val_stems, cfg.channels,
-                                     cfg.window, cfg.val_stride)
+    train_ds = _build_dataset(cfg, cfg.train_stems, cfg.train_stride)
+    val_ds = _build_dataset(cfg, cfg.val_stems, cfg.val_stride)
     train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, shuffle=False)
-    print(f"[data] train windows={len(train_ds)} val windows={len(val_ds)}")
+    print(f"[{cfg.signal_type}][data] train windows={len(train_ds)} val windows={len(val_ds)}")
 
     cfg.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     best_val_loss = float("inf")
@@ -91,15 +112,15 @@ def train(cfg: Config) -> TrainResult:
             unfreeze_top_blocks(model, phase.unfreeze_top_n)
             optimizer = torch.optim.Adam(trainable_params(model), lr=phase.lr)
             n_trainable = sum(p.numel() for p in trainable_params(model))
-            print(f"[phase {i}] epochs={phase.epochs} lr={phase.lr} "
+            print(f"[{cfg.signal_type}][phase {i}] epochs={phase.epochs} lr={phase.lr} "
                   f"unfreeze_top_n={phase.unfreeze_top_n} trainable_params={n_trainable}")
 
             for epoch in range(1, phase.epochs + 1):
                 global_epoch += 1
                 train_loss = _run_epoch(model, train_loader, device, optimizer)
                 val_loss = _run_epoch(model, val_loader, device, optimizer=None)
-                print(f"[phase {i}][epoch {epoch}] train_loss={train_loss:.6f} "
-                      f"val_loss={val_loss:.6f}")
+                print(f"[{cfg.signal_type}][phase {i}][epoch {epoch}] "
+                      f"train_loss={train_loss:.6f} val_loss={val_loss:.6f}")
 
                 row = {"global_epoch": global_epoch, "phase": i, "epoch_in_phase": epoch,
                        "train_loss": train_loss, "val_loss": val_loss}
