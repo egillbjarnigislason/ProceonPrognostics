@@ -94,6 +94,7 @@ def vibration_config() -> Config:
     """
     return Config(
         signal_type="vibration",
+        device="cuda",
         channels=["accel_x_A", "accel_y_A"],
         filter_spec=FilterSpec(kind="lowpass", cutoff_hz=10_000),
         phases=[
@@ -112,6 +113,7 @@ def current_config() -> Config:
     """
     return Config(
         signal_type="current",
+        device="cuda",
         filter_spec=FilterSpec(kind="lowpass", cutoff_hz=800),
         phases=[
             PhaseConfig(epochs=3, lr=1e-3, unfreeze_top_n=0),
@@ -134,6 +136,7 @@ def temp_config() -> Config:
     """
     return Config(
         signal_type="temp",
+        device="cuda",
         filter_spec=FilterSpec(kind="moving_average", window=4000),
         phases=[
             PhaseConfig(epochs=3, lr=1e-3, unfreeze_top_n=0),
