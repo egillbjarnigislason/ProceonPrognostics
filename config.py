@@ -52,14 +52,18 @@ class Config:
     signal_type: str  # "vibration" | "current" | "temp" -- selects which
                        # WindowDataset class training_loop.py uses
 
-    # DataKAIST, not Data: Data/ is a stale partial download (4 files per
-    # signal) whose current/temp subfolder is even misnamed "current_temp"
-    # (underscore) vs. data_loading.py's hardcoded "current,temp" (comma) --
-    # that combination would silently break current/temp loading. DataKAIST/
-    # is the complete, correctly-named 41-condition download (matches the
-    # comma folder data_loading.py expects) and is what NB_DataExpl.ipynb
-    # already uses.
-    data_dir: Path = Path("DataKAIST")
+    # Data, not DataKAIST: Data/ holds just the 4 files these configs'
+    # default train_stems/val_stems actually need (0Nm_Normal, 2Nm_Normal,
+    # 4Nm_Normal, 4Nm_Unbalance_3318mg) -- no need to carry the full
+    # 41-condition DataKAIST/ download everywhere just to train on
+    # Normal-condition files. Data/current,temp/ was previously misnamed
+    # "current_temp" (underscore), which didn't match data_loading.py's
+    # hardcoded "current,temp" (comma) and would have silently broken
+    # current/temp loading -- fixed by renaming the folder to match. If
+    # train_stems/val_stems ever expand to a fault-condition file not
+    # present in Data/, point this at DataKAIST/ (or copy that file over)
+    # instead.
+    data_dir: Path = Path("Data")
 
     # Vibration only: which of VIBRATION_CHANNELS to use. Current/temp
     # datasets instead take every channel data_loading.py reports as
